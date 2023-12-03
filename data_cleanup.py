@@ -1,27 +1,28 @@
-import os
+import csv
 
-#for line in open('test.txt', 'r') { 
-#	lines = [i for i in line.split()]
-#	if (int(lines[0]) == 400) {
-#		file2.write(line)/
+datafile = open('016.csv', 'r')
+telem = open('telemetry.txt', 'w')
+pei = open('pei.txt', 'w') 
+bms = open('bms.txt', 'w') 
 
-file1 = open('data.txt', 'r')
-file2 = open('telemetry.txt', 'w')
-file3 = open('pei.txt', 'w') 
-file4 = open('bms.txt', 'w') 
+reader = csv.reader(datafile)
+for row in reader:
+    if (len(row) < 10):
+        print(f'Warning: Unknown row "{row}"')
+        continue
+    
+    if (row[0] == '400'):
+        telem.write(' '.join(row))
+        telem.write('\n')
+    if (row[0] == '387'):
+        pei.write(' '.join(row))
+        pei.write('\n')
+    if (row[0] == '380'):
+        bms.write(' '.join(row))
+        bms.write('\n')
 
-lines = file1.readlines()
-for line in lines:
-    parts = line.split()
-    if (parts[0] == '400'):
-        file2.write(line)
-    if (parts[0] == '387'):
-        file3.write(line)
-    if (parts[0] == '380'):
-        file4.write(line) 
-
-file1.close()
-file2.close()
-file3.close()
-file4.close()
+datafile.close()
+telem.close()
+pei.close()
+bms.close()
 
