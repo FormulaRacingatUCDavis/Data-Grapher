@@ -6,7 +6,7 @@ from plot_window import PlotWindow
 
 # Data should be formed by category - type
 
-class GraphViewer(object):
+class GraphGenerator(object):
     def __init__(self):
         self.messages = {}
 
@@ -19,9 +19,10 @@ class GraphViewer(object):
 
         self.messages[channel][category].append((value, time))
     
-    def display(self):
+    def get_graphs(self):
         plt.style.use('./viewer.mplstyle')
-        window = PlotWindow()
+
+        graphs = []
         for channel in self.messages:
             # Create a tab
             fig, axs = plt.subplots(1, len(self.messages[channel]))
@@ -38,8 +39,8 @@ class GraphViewer(object):
                 axs[index].set_facecolor('#1a1a23')
                 axs[index].set(xlabel='Timestamp (s)', ylabel=category)
                 axs[index].plot(times, values, marker = 'o', c='#02d0f5')
+                index += 1
             
-            window.addPlot(channel, fig)
+            graphs.append((channel, fig))
             
-        
-        window.show()
+        return graphs
