@@ -1,6 +1,8 @@
 
 from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QCheckBox, QGroupBox, QLabel
 
+from PyQt5.QtCore import Qt
+
 """Contains the options for creating the graph, as well as their UI"""
 class GraphOptions(object):
 
@@ -17,7 +19,10 @@ class GraphOptions(object):
             # Add the UI and create the category
             self.categories[category] = QVBoxLayout()
             self.layout.addLayout(self.categories[category])
-            self.categories[category].addWidget(QLabel(category))
+
+            label = QLabel(category)
+            label.setAlignment(Qt.AlignmentFlag.AlignTop)
+            self.categories[category].addWidget(label)
         
         box = QCheckBox(title)
         box.setChecked(True)
