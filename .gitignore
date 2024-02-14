@@ -3,6 +3,8 @@ telemetry.txt
 bms.txt
 pei.txt
 
+graph_app.spec
+
 ## Python Stuff ##
 
 # Byte-compiled / optimized / DLL files

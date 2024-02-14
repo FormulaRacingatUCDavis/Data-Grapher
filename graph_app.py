@@ -2,10 +2,8 @@
 
 # Import Qt Stuff
 from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, \
-                            QWidget, QTabWidget, QVBoxLayout, \
-                            QLabel, QFileDialog, \
-                            QGroupBox, QHBoxLayout
-from PyQt5.QtGui import QFont
+                            QWidget, QVBoxLayout, QLabel, \
+                            QFileDialog
 from PyQt5.QtCore import Qt
 
 import sys, csv
