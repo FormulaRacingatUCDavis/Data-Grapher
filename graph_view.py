@@ -7,9 +7,9 @@ from matplotlib import pyplot as plt
 from PyQt5.QtWidgets import QWidget, QTabWidget, QVBoxLayout
 
 # Data should be formed by category - type
-
 class GraphView(object):
-    def __init__(self):
+    def __init__(self, data_filter):
+        self.data_filter = data_filter
         self.messages = {}
         
         self.canvases = []
@@ -20,6 +20,12 @@ class GraphView(object):
         self.tabs = QTabWidget()
 
     def add_data(self, channel, category, value, time):
+        # Apply filter
+        if channel in self.data_filter and \
+            category in self.data_filter[channel] and \
+            not self.data_filter[channel][category]:
+            return # Ignore
+        
         if not channel in self.messages:
             self.messages[channel] = {}
 
@@ -33,6 +39,10 @@ class GraphView(object):
 
         ## Initialize the widget
         for channel in self.messages:
+            # Ignore empty channels
+            if not channel:
+                continue
+
             # Create a tab
             fig, axs = plt.subplots(1, len(self.messages[channel]))
             if len(self.messages[channel]) == 1:
