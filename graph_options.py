@@ -18,6 +18,7 @@ class GraphOptions(object):
         if category not in self.categories:
             # Add the UI and create the category
             self.categories[category] = QVBoxLayout()
+            self.categories[category].setAlignment(Qt.AlignmentFlag.AlignTop)
             self.layout.addLayout(self.categories[category])
 
             label = QLabel(category)
