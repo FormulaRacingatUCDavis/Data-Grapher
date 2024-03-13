@@ -48,7 +48,6 @@ class GraphTab(object):
         self.layout.addWidget(self.toolbar)
 
     def switchTab(self, ln, ax, category):
-        print(category)
         times = [message[1] for message in self.channelMessages[category]], 
         values = [message[0] for message in self.channelMessages[category]],
 

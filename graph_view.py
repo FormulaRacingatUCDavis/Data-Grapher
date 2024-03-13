@@ -14,11 +14,6 @@ class GraphView(object):
         self.data_filter = data_filter
         self.messages = {}
         
-        self.canvases = []
-        self.figure_handles = []
-        self.toolbar_handles = []
-        self.tab_handles = []
-        self.current_window = -1
         self.tabs = QTabWidget()
         self.graphTabs = []
 
@@ -43,9 +38,6 @@ class GraphView(object):
         ## Initialize the widget
         for channel in self.messages:
             # Ignore empty channels
-            if not channel:
-                continue
-
             graphTab = GraphTab(self.messages[channel])
             self.tabs.addTab(graphTab.tab, channel)
             self.graphTabs.append(graphTab)
