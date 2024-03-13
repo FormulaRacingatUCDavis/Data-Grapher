@@ -2,8 +2,7 @@
 
 # Import Qt Stuff
 from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, \
-                            QWidget, QVBoxLayout, QLabel, \
-                            QFileDialog
+                            QWidget, QVBoxLayout, QLabel, QFileDialog
 from PyQt5.QtCore import Qt
 
 import sys, csv
@@ -27,21 +26,7 @@ class GraphApp(QMainWindow):
         header.adjustSize()
 
         # Add options box
-        self.options = GraphOptions()
-        self.options.addCheckbox('Telemetry', 'MC Inlet Temperature (C)')
-        self.options.addCheckbox('Telemetry', 'MC Outlet Temperature (C)')
-        self.options.addCheckbox('Telemetry', 'Motor Inlet Temperature (C)')
-        self.options.addCheckbox('Telemetry', 'Motor Outlet Temperature (C)')
-        self.options.addCheckbox('Telemetry', 'MC Inlet Pressure (PSI)')
-        self.options.addCheckbox('Telemetry', 'MC Outlet Pressure (PSI)')
-        self.options.addCheckbox('Telemetry', 'Motor Inlet Pressure (PSI)')
-        self.options.addCheckbox('Telemetry', 'Motor Outlet Pressure (PSI)')
-
-        self.options.addCheckbox('PEI', 'DC Current Draw (Amps)')
-
-        self.options.addCheckbox('BMS', 'Maximum Temperature (C)')
-        self.options.addCheckbox('BMS', 'State Of Charge (%)')
-        self.options.addCheckbox('BMS', 'MC Inlet Pressure (PSI)')
+        self.addOptionsBox()
         
         load = QPushButton()
         load.setText("Load from CSV")
@@ -57,6 +42,23 @@ class GraphApp(QMainWindow):
         self.view = QWidget()
         self.view.setLayout(layout)
         self.setCentralWidget(self.view)
+
+    def addOptionsBox(self):
+        self.options = GraphOptions()
+        self.options.addCheckbox('Telemetry', 'MC Inlet Temperature (C)')
+        self.options.addCheckbox('Telemetry', 'MC Outlet Temperature (C)')
+        self.options.addCheckbox('Telemetry', 'Motor Inlet Temperature (C)')
+        self.options.addCheckbox('Telemetry', 'Motor Outlet Temperature (C)')
+        self.options.addCheckbox('Telemetry', 'MC Inlet Pressure (PSI)')
+        self.options.addCheckbox('Telemetry', 'MC Outlet Pressure (PSI)')
+        self.options.addCheckbox('Telemetry', 'Motor Inlet Pressure (PSI)')
+        self.options.addCheckbox('Telemetry', 'Motor Outlet Pressure (PSI)')
+
+        self.options.addCheckbox('PEI', 'DC Current Draw (Amps)')
+
+        self.options.addCheckbox('BMS', 'Maximum Temperature (C)')
+        self.options.addCheckbox('BMS', 'State Of Charge (%)')
+        self.options.addCheckbox('BMS', 'Pack Voltage (V)')
 
     def loadButtonPressed(self):
         fileSelector = QFileDialog(self)
@@ -104,14 +106,14 @@ class GraphApp(QMainWindow):
             # TODO: Is it amps?
             graph_view.add_data('PEI', 'DC Current Draw (Amps)', pack16Bit(int(row[1]), int(row[2])), time)
         if (row[0] == '380'): # BMS
+            # TODO: Add BMS pack voltage
             graph_view.add_data('BMS', 'Maximum Temperature (C)', int(row[1]), time)
             graph_view.add_data('BMS', 'State Of Charge (%)', int(row[2]), time)
-            graph_view.add_data('BMS', 'MC Inlet Pressure (PSI)', pack16Bit(int(row[5]), int(row[6])) / 100, time)
+            graph_view.add_data('BMS', 'Pack Voltage (V)', pack16Bit(int(row[5]), int(row[6])) / 100, time)
 
 # Create main window
 if len(sys.argv) == 1: # Load the file prompt
     app = QApplication(sys.argv)
-
     window = GraphApp()
     window.show()
 
