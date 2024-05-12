@@ -49,8 +49,8 @@ class GraphTab(object):
 
     def switchTab(self, ln, ax, category):
         print(category)
-        times = [message[1] for message in self.channelMessages[category]], 
-        values = [message[0] for message in self.channelMessages[category]],
+        times = [message[1] for message in self.channelMessages[category]] 
+        values = [message[0] for message in self.channelMessages[category]]
 
         ln.set_xdata(times)
         ln.set_ydata(values)
