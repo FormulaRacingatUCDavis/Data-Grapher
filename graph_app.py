@@ -11,6 +11,20 @@ from graph_view import GraphView
 from graph_options import GraphOptions
 from util import pack16Bit, convertTime
 
+ID = 0
+D0 = 1
+D1 = 2
+D2 = 3
+D3 = 4
+D4 = 5
+D5 = 6
+D6 = 7
+D7 = 8
+TIME = 9
+
+voltage = 0
+rear_wheel_speed = 0
+
 class GraphApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -53,8 +67,10 @@ class GraphApp(QMainWindow):
         self.options.addCheckbox('Telemetry', 'MC Outlet Pressure (PSI)')
         self.options.addCheckbox('Telemetry', 'Motor Inlet Pressure (PSI)')
         self.options.addCheckbox('Telemetry', 'Motor Outlet Pressure (PSI)')
+        self.options.addCheckbox('Telemetry', 'Motor Speed (RPM)')
 
         self.options.addCheckbox('PEI', 'DC Current Draw (Amps)')
+        self.options.addCheckbox('PEI', 'Power (W)')
 
         self.options.addCheckbox('BMS', 'Maximum Temperature (C)')
         self.options.addCheckbox('BMS', 'State Of Charge (%)')
@@ -91,25 +107,58 @@ class GraphApp(QMainWindow):
         self.setCentralWidget(g.tabs)
 
     def appendRow(self, row, graph_view):
-        time = convertTime(int(row[-1]))
+        global voltage
+        global rear_wheel_speed
 
+        #time = convertTime(int(row[-1]))
+        time = float(row[-1])
+        if (row[0] == 'a5'): # Telem
+            graph_view.add_data('Telemetry', 'Motor Speed (RPM)', float(row[3]), time)
+            rear_wheel_speed = float(row[3]) * 12 / 33
         if (row[0] == '400'): # Telem
-            graph_view.add_data('Telemetry', 'MC Inlet Temperature (C)', int(row[1]), time)
-            graph_view.add_data('Telemetry', 'MC Outlet Temperature (C)', int(row[2]), time)
-            graph_view.add_data('Telemetry', 'Motor Inlet Temperature (C)', int(row[3]), time)
-            graph_view.add_data('Telemetry', 'Motor Outlet Temperature (C)', int(row[4]), time)
-            graph_view.add_data('Telemetry', 'MC Inlet Pressure (PSI)', int(row[5]), time)
-            graph_view.add_data('Telemetry', 'MC Outlet Pressure (PSI)', int(row[6]), time)
-            graph_view.add_data('Telemetry', 'Motor Inlet Pressure (PSI)', int(row[7]), time)
-            graph_view.add_data('Telemetry', 'Motor Outlet Pressure (PSI)', int(row[8]), time)
+            graph_view.add_data('Telemetry', 'MC Inlet Temperature (C)', float(row[1]), time)
+            graph_view.add_data('Telemetry', 'MC Outlet Temperature (C)', float(row[3]), time)
         if (row[0] == '387'): # PEI
             # TODO: Is it amps?
-            graph_view.add_data('PEI', 'DC Current Draw (Amps)', pack16Bit(int(row[1]), int(row[2])), time)
+            graph_view.add_data('BMS', 'DC Current Draw (Amps)', float(row[1]), time)
+            graph_view.add_data('BMS', 'Power (W)', float(row[1]) * voltage, time)
         if (row[0] == '380'): # BMS
             # TODO: Add BMS pack voltage
-            graph_view.add_data('BMS', 'Maximum Temperature (C)', int(row[1]), time)
-            graph_view.add_data('BMS', 'State Of Charge (%)', int(row[2]), time)
-            graph_view.add_data('BMS', 'Pack Voltage (V)', pack16Bit(int(row[5]), int(row[6])) / 100, time)
+            graph_view.add_data('BMS', 'Maximum Temperature (C)', float(row[1]), time)
+            graph_view.add_data('BMS', 'State Of Charge (%)', float(row[2]), time)
+            graph_view.add_data('BMS', 'Pack Voltage (V)', float(row[5]), time)
+        if(row[0] == '500'):
+            graph_view.add_data('Telemetry', 'Front Strain Gauge ADC', float(row[D0]), time)
+            graph_view.add_data('Telemetry', 'TC Torque Request (Nm)', float(row[D4]), time)
+            fws = float(row[D2])
+            graph_view.add_data('Telemetry', 'Front wheel speed (RPM)', fws, time)
+            slip_ratio = 0
+            if(fws > 0):
+                slip_ratio = (rear_wheel_speed / fws) - 1
+            graph_view.add_data('Telemetry', 'Slip Ratio', slip_ratio, time)
+        if(row[0] == '766'):
+            graph_view.add_data('Telemetry', 'Throttle (%)', float(row[D3]), time)
+            graph_view.add_data('Telemetry', 'Brake (%)', float(row[D4]), time)
+        if(row[ID] == 'c0'):
+            graph_view.add_data('Telemetry', 'Torque Request (Nm)', float(row[D0]), time)
+            graph_view.add_data('Telemetry', 'Power (RPM)', float(row[D0]) * rear_wheel_speed * 33 / 12 * 0.10472, time)
+        if(row[ID] == '402'):
+            graph_view.add_data('Telemetry', 'Inlet Pressure (PSI)', float(row[D0]), time)
+            graph_view.add_data('Telemetry', 'Outlet Pressure (PSI)', float(row[D2]), time)
+        if(row[ID] == '403'):
+            graph_view.add_data('Telemetry', 'Rear Strain Gauge ADC', float(row[D0]), time)
+        if(row[ID] == '100'):
+            graph_view.add_data('Telemetry', 'Angle X (Deg)', float(row[D0]), time)
+            graph_view.add_data('Telemetry', 'Angle Y (Deg)', float(row[D2]), time)
+            graph_view.add_data('Telemetry', 'Angle Z (Deg)', float(row[D4]), time)
+        if(row[ID] == '101'):
+            graph_view.add_data('Telemetry', 'Accel X (Deg)', float(row[D0]), time)
+            graph_view.add_data('Telemetry', 'Accel Y (Deg)', float(row[D2]), time)
+            graph_view.add_data('Telemetry', 'Accel Z (Deg)', float(row[D4]), time)
+        if(row[ID] == 'a7'):
+            voltage = float(row[D0])
+           
+        
 
 # Create main window
 if len(sys.argv) == 1: # Load the file prompt
