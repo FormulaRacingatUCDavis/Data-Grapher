@@ -24,6 +24,17 @@ TIME = 9
 
 voltage = 0
 rear_wheel_speed = 0
+fws_ar = [0, 0]
+
+integral = 0
+integral_cap = 100
+target_slip = 0.17
+prev_pid_error = 0
+
+ki = 1000
+kp = 2000
+kd = 100
+
 
 class GraphApp(QMainWindow):
     def __init__(self):
@@ -107,8 +118,15 @@ class GraphApp(QMainWindow):
         self.setCentralWidget(g.tabs)
 
     def appendRow(self, row, graph_view):
-        global voltage
         global rear_wheel_speed
+        global voltage
+        global integral
+        global integral_cap
+        global target_slip
+        global prev_pid_error
+        global ki
+        global kp
+        global kd
 
         #time = convertTime(int(row[-1]))
         time = float(row[-1])
@@ -130,12 +148,37 @@ class GraphApp(QMainWindow):
         if(row[0] == '500'):
             graph_view.add_data('Telemetry', 'Front Strain Gauge ADC', float(row[D0]), time)
             graph_view.add_data('Telemetry', 'TC Torque Request (Nm)', float(row[D4]), time)
-            fws = float(row[D2])
+            fws_ar.append(float(row[D2]))
+            del fws_ar[0]
+            fws = (fws_ar[0] + fws_ar[1]) / 2
             graph_view.add_data('Telemetry', 'Front wheel speed (RPM)', fws, time)
+
             slip_ratio = 0
+            TC_torque_req = 0
             if(fws > 0):
                 slip_ratio = (rear_wheel_speed / fws) - 1
+
+                if (integral > integral_cap):
+                    integral = integral_cap
+                if (integral < 0): 
+                    integral = 0
+
+                pid_error = slip_ratio - target_slip
+                integral = integral + pid_error
+                derivative = pid_error - prev_pid_error
+
+                TC_control_var = (kp * pid_error) + (ki * integral) + kd * (derivative)
+                TC_torque_req = 2300 - TC_control_var
+
+                if TC_torque_req > 2300:
+                    TC_torque_req = 2300
+                elif TC_torque_req < 0:
+                    TC_torque_req = 0
+
+                prev_pid_error = pid_error
+            
             graph_view.add_data('Telemetry', 'Slip Ratio', slip_ratio, time)
+            graph_view.add_data('Telemetry', 'TC_SIM', TC_torque_req, time)
         if(row[0] == '766'):
             graph_view.add_data('Telemetry', 'Throttle (%)', float(row[D3]), time)
             graph_view.add_data('Telemetry', 'Brake (%)', float(row[D4]), time)
