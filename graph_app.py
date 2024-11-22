@@ -200,6 +200,7 @@ class GraphApp(QMainWindow):
             graph_view.add_data('Telemetry', 'Accel Z (Deg)', float(row[D4]), time)
         if(row[ID] == 'a7'):
             voltage = float(row[D0])
+            graph_view.add_data('Telemetry', 'Capacitor Voltage', voltage, time)
            
         
 
