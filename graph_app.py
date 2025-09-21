@@ -9,7 +9,9 @@ import sys, csv
 
 from graph_view import GraphView
 from graph_options import GraphOptions
-from util import pack16Bit, convertTime
+from util import pack16Bit
+import can
+import cantools.database
 
 ID = 0
 D0 = 1
@@ -67,6 +69,10 @@ class GraphApp(QMainWindow):
         self.view = QWidget()
         self.view.setLayout(layout)
         self.setCentralWidget(self.view)
+
+        # DBC files
+        self.frucd_dbc = cantools.database.load_file('FE12.dbc')
+        self.mc_dbc = cantools.database.load_file('20240129 Gen5 CAN DB.dbc')
 
     def addOptionsBox(self):
         self.options = GraphOptions()
@@ -128,79 +134,101 @@ class GraphApp(QMainWindow):
         global kp
         global kd
 
-        #time = convertTime(int(row[-1]))
-        time = float(row[-1])
-        if (row[0] == 'a5'): # Telem
-            graph_view.add_data('Telemetry', 'Motor Speed (RPM)', float(row[3]), time)
-            rear_wheel_speed = float(row[3]) * 12 / 33
-        if (row[0] == '400'): # Telem
-            graph_view.add_data('Telemetry', 'MC Inlet Temperature (C)', float(row[1]), time)
-            graph_view.add_data('Telemetry', 'MC Outlet Temperature (C)', float(row[3]), time)
-        if (row[0] == '387'): # PEI
-            # TODO: Is it amps?
-            graph_view.add_data('BMS', 'DC Current Draw (Amps)', float(row[1]), time)
-            graph_view.add_data('BMS', 'Power (W)', float(row[1]) * voltage, time)
-        if (row[0] == '380'): # BMS
-            # TODO: Add BMS pack voltage
-            graph_view.add_data('BMS', 'Maximum Temperature (C)', float(row[1]), time)
-            graph_view.add_data('BMS', 'State Of Charge (%)', float(row[2]), time)
-            graph_view.add_data('BMS', 'Pack Voltage (V)', float(row[5]), time)
-        if(row[0] == '500'):
-            graph_view.add_data('Telemetry', 'Front Strain Gauge ADC', float(row[D0]), time)
-            graph_view.add_data('Telemetry', 'TC Torque Request (Nm)', float(row[D4]), time)
-            fws_ar.append(float(row[D2]))
-            del fws_ar[0]
-            fws = (fws_ar[0] + fws_ar[1]) / 2
-            graph_view.add_data('Telemetry', 'Front wheel speed (RPM)', fws, time)
+        id = int(row[ID], 16)
+        raw_data = bytes([int(row[i], 16) if row[i] != '' else 0 for i in range(D0, D7 + 1)])
+        ts = float(row[TIME]) / 1000.0
+        msg = can.Message(arbitration_id=id, data=raw_data, is_extended_id=False, timestamp=ts)
 
-            slip_ratio = 0
-            TC_torque_req = 0
-            if(fws > 0):
-                slip_ratio = (rear_wheel_speed / fws) - 1
+        if id == 0xa0:
+            message = self.mc_dbc.get_message_by_frame_id(msg.arbitration_id)
+            data = message.decode(msg.data)
+            graph_view.add_data('Telemetry', 'MC Module A Temperature [C]', data['INV_Module_A_Temp'], ts)
+            graph_view.add_data('Telemetry', 'MC Module B Temperature [C]', data['INV_Module_B_Temp'], ts)
+            graph_view.add_data('Telemetry', 'MC Module C Temperature [C]', data['INV_Module_C_Temp'], ts)
+        if id == 0xa5:
+            message = self.mc_dbc.get_message_by_frame_id(msg.arbitration_id)
+            data = message.decode(msg.data)
+            graph_view.add_data('Telemetry', 'Motor Speed [RPM]', data['INV_Motor_Speed'], ts)
+        if id == 0xc0:
+            message = self.frucd_dbc.get_message_by_frame_id(msg.arbitration_id)
+            data = message.decode(msg.data)
+            graph_view.add_data('Telemetry', 'Torque Request [Nm]', data['Torque'], ts)
+        
+        # for i in range(1, 9):
+        #     if row[i] != '':
+        #         row[i] = int(row[i], 16)
+        # time = float(row[-1])
+        # if (row[0] == 'A5'): # Telem
+        #     graph_view.add_data('Telemetry', 'Motor Speed (RPM)', float(row[3]), time)
+        #     rear_wheel_speed = float(row[3]) * 12 / 33
+        # if (row[0] == '400'): # Telem
+        #     graph_view.add_data('Telemetry', 'MC Inlet Temperature (C)', float(row[1]), time)
+        #     graph_view.add_data('Telemetry', 'MC Outlet Temperature (C)', float(row[3]), time)
+        # if (row[0] == '387'): # PEI
+        #     # TODO: Is it amps?
+        #     graph_view.add_data('BMS', 'DC Current Draw (Amps)', float(row[1]), time)
+        #     graph_view.add_data('BMS', 'Power (W)', float(row[1]) * voltage, time)
+        # if (row[0] == '380'): # BMS
+        #     # TODO: Add BMS pack voltage
+        #     graph_view.add_data('BMS', 'Maximum Temperature (C)', float(row[1]), time)
+        #     graph_view.add_data('BMS', 'State Of Charge (%)', float(row[2]), time)
+        #     graph_view.add_data('BMS', 'Pack Voltage (V)', float(row[5]), time)
+        # if(row[0] == '500'):
+        #     graph_view.add_data('Telemetry', 'Front Strain Gauge ADC', float(row[D0]), time)
+        #     graph_view.add_data('Telemetry', 'TC Torque Request (Nm)', float(row[D4]), time)
+        #     fws_ar.append(float(row[D2]))
+        #     del fws_ar[0]
+        #     fws = (fws_ar[0] + fws_ar[1]) / 2
+        #     graph_view.add_data('Telemetry', 'Front wheel speed (RPM)', fws, time)
 
-                if (integral > integral_cap):
-                    integral = integral_cap
-                if (integral < 0): 
-                    integral = 0
+        #     slip_ratio = 0
+        #     TC_torque_req = 0
+        #     if(fws > 0):
+        #         slip_ratio = (rear_wheel_speed / fws) - 1
 
-                pid_error = slip_ratio - target_slip
-                integral = integral + pid_error
-                derivative = pid_error - prev_pid_error
+        #         if (integral > integral_cap):
+        #             integral = integral_cap
+        #         if (integral < 0): 
+        #             integral = 0
 
-                TC_control_var = (kp * pid_error) + (ki * integral) + kd * (derivative)
-                TC_torque_req = 2300 - TC_control_var
+        #         pid_error = slip_ratio - target_slip
+        #         integral = integral + pid_error
+        #         derivative = pid_error - prev_pid_error
 
-                if TC_torque_req > 2300:
-                    TC_torque_req = 2300
-                elif TC_torque_req < 0:
-                    TC_torque_req = 0
+        #         TC_control_var = (kp * pid_error) + (ki * integral) + kd * (derivative)
+        #         TC_torque_req = 2300 - TC_control_var
 
-                prev_pid_error = pid_error
+        #         if TC_torque_req > 2300:
+        #             TC_torque_req = 2300
+        #         elif TC_torque_req < 0:
+        #             TC_torque_req = 0
+
+        #         prev_pid_error = pid_error
             
-            graph_view.add_data('Telemetry', 'Slip Ratio', slip_ratio, time)
-            graph_view.add_data('Telemetry', 'TC_SIM', TC_torque_req, time)
-        if(row[0] == '766'):
-            graph_view.add_data('Telemetry', 'Throttle (%)', float(row[D3]), time)
-            graph_view.add_data('Telemetry', 'Brake (%)', float(row[D4]), time)
-        if(row[ID] == 'c0'):
-            graph_view.add_data('Telemetry', 'Torque Request (Nm)', float(row[D0]), time)
-            graph_view.add_data('Telemetry', 'Power (RPM)', float(row[D0]) * rear_wheel_speed * 33 / 12 * 0.10472, time)
-        if(row[ID] == '402'):
-            graph_view.add_data('Telemetry', 'Inlet Pressure (PSI)', float(row[D0]), time)
-            graph_view.add_data('Telemetry', 'Outlet Pressure (PSI)', float(row[D2]), time)
-        if(row[ID] == '403'):
-            graph_view.add_data('Telemetry', 'Rear Strain Gauge ADC', float(row[D0]), time)
-        if(row[ID] == '100'):
-            graph_view.add_data('Telemetry', 'Angle X (Deg)', float(row[D0]), time)
-            graph_view.add_data('Telemetry', 'Angle Y (Deg)', float(row[D2]), time)
-            graph_view.add_data('Telemetry', 'Angle Z (Deg)', float(row[D4]), time)
-        if(row[ID] == '101'):
-            graph_view.add_data('Telemetry', 'Accel X (Deg)', float(row[D0]), time)
-            graph_view.add_data('Telemetry', 'Accel Y (Deg)', float(row[D2]), time)
-            graph_view.add_data('Telemetry', 'Accel Z (Deg)', float(row[D4]), time)
-        if(row[ID] == 'a7'):
-            voltage = float(row[D0])
-            graph_view.add_data('Telemetry', 'Capacitor Voltage', voltage, time)
+        #     graph_view.add_data('Telemetry', 'Slip Ratio', slip_ratio, time)
+        #     graph_view.add_data('Telemetry', 'TC_SIM', TC_torque_req, time)
+        # if(row[0] == '766'):
+        #     graph_view.add_data('Telemetry', 'Throttle (%)', float(row[D3]), time)
+        #     graph_view.add_data('Telemetry', 'Brake (%)', float(row[D4]), time)
+        # if(row[ID] == 'C0'):
+        #     graph_view.add_data('Telemetry', 'Torque Request (Nm)', float(row[D0]), time)
+        #     graph_view.add_data('Telemetry', 'Power (RPM)', float(row[D0]) * rear_wheel_speed * 33 / 12 * 0.10472, time)
+        # if(row[ID] == '402'):
+        #     graph_view.add_data('Telemetry', 'Inlet Pressure (PSI)', float(row[D0]), time)
+        #     graph_view.add_data('Telemetry', 'Outlet Pressure (PSI)', float(row[D2]), time)
+        # if(row[ID] == '403'):
+        #     graph_view.add_data('Telemetry', 'Rear Strain Gauge ADC', float(row[D0]), time)
+        # if(row[ID] == '100'):
+        #     graph_view.add_data('Telemetry', 'Angle X (Deg)', float(row[D0]), time)
+        #     graph_view.add_data('Telemetry', 'Angle Y (Deg)', float(row[D2]), time)
+        #     graph_view.add_data('Telemetry', 'Angle Z (Deg)', float(row[D4]), time)
+        # if(row[ID] == '101'):
+        #     graph_view.add_data('Telemetry', 'Accel X (Deg)', float(row[D0]), time)
+        #     graph_view.add_data('Telemetry', 'Accel Y (Deg)', float(row[D2]), time)
+        #     graph_view.add_data('Telemetry', 'Accel Z (Deg)', float(row[D4]), time)
+        # if(row[ID] == 'A7'):
+        #     voltage = float(row[D0])
+        #     graph_view.add_data('Telemetry', 'Capacitor Voltage', voltage, time)
            
         
 

@@ -6,10 +6,3 @@ def pack16Bit(hi, lo):
     """
 
     return (hi << 8) + lo
-
-def convertTime(value):
-    """
-    Converts the time from the CAN message to seconds.
-    """
-
-    return value / 1_000_000

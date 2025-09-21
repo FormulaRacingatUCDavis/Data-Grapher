@@ -54,7 +54,8 @@ class GraphTab(object):
 
         ln.set_xdata(times)
         ln.set_ydata(values)
-        ax.set_title(category)
+        # ax.set_title(category)
+        ax.set_title(f"{category} (Max = {max(values):.2f}, Min = {min(values):.2f})")
         ax.relim()
         ax.autoscale_view()
         plt.draw()
