@@ -135,7 +135,7 @@ class GraphApp(QMainWindow):
         global kd
 
         id = int(row[ID], 16)
-        raw_data = bytes([int(row[i], 16) if row[i] != '' else 0 for i in range(D0, D7 + 1)])
+        raw_data = bytes([int(row[i]) if row[i] != '' else 0 for i in range(D0, D7 + 1)])
         ts = float(row[TIME]) / 1000.0
         msg = can.Message(arbitration_id=id, data=raw_data, is_extended_id=False, timestamp=ts)
 

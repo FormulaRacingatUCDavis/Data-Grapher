@@ -56,6 +56,7 @@ class GraphTab(object):
         ln.set_ydata(values)
         # ax.set_title(category)
         ax.set_title(f"{category} (Max = {max(values):.2f}, Min = {min(values):.2f})")
+        ax.set_ylabel(category)
         ax.relim()
         ax.autoscale_view()
         plt.draw()

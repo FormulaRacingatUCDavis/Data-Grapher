@@ -38,8 +38,8 @@ BO_ 1894 Dashboard_Vehicle_State: 7 Dashboard
    SG_ Throttle1_Level : 15|8@0+ (1,0) [0|100] "%" Vector__XXX
    SG_ Throttle2_Level : 23|8@0+ (1,0) [0|100] "%" Vector__XXX
    SG_ Brake_Level : 31|8@0+ (1,0) [0|100] "%" Vector__XXX
-   SG_ VCU_ticks : 47|16@0+ (1,0) [0|65535] "ms" Vector__XXX
    SG_ State : 39|8@0+ (1,0) [0|255] "" Vector__XXX
+   SG_ VCU_ticks : 47|16@0+ (1,0) [0|65535] "ms" Vector__XXX
 
 BO_ 896 PEI_BMS_Status: 5 PEI
    SG_ BMS_Status : 7|8@0+ (1,0) [0|255] "" Vector__XXX
@@ -48,20 +48,20 @@ BO_ 896 PEI_BMS_Status: 5 PEI
    SG_ Communication_Break_ID : 39|8@0- (1,0) [-1|9] "" Vector__XXX
 
 BO_ 903 PEI_Status: 5 PEI
-   SG_ Current_ADC : 15|16@0+ (1,0) [0|65535] "A" Vector__XXX
    SG_ IMD_OK : 5|1@0+ (1,0) [0|1] "" Vector__XXX
    SG_ BMS_OK : 4|1@0+ (1,0) [0|1] "" Vector__XXX
    SG_ SHUTDOWN_FINAL : 3|1@0+ (1,0) [0|1] "" Vector__XXX
    SG_ AIR_NEG : 2|1@0+ (1,0) [0|1] "" Vector__XXX
    SG_ AIR_POS : 1|1@0+ (1,0) [0|1] "" Vector__XXX
    SG_ PRECHARGE : 0|1@0+ (1,0) [0|1] "" Vector__XXX
-   SG_ Current_Reference : 31|16@0+ (1,0) [0|65535] "" Vector__XXX
+   SG_ Current_ADC : 15|16@0+ (1,0) [0|65535] "Raw_ADC" Vector__XXX
+   SG_ Current_Reference : 31|16@0- (1,0) [-2048|2047] "Raw_ADC" Vector__XXX
 
 BO_ 1024 TelemNode_Cooling_Loop_Temps: 8 TelemNode
    SG_ Inlet_Water_Temp : 7|16@0- (0.1,0) [-3276.8|3276.7] "C" Vector__XXX
    SG_ Outlet_Water_Temp : 23|16@0- (0.1,0) [-3276.8|3276.7] "C" Vector__XXX
    SG_ Air_Into_Radiator_Temp : 39|16@0- (0.1,0) [-3276.8|3276.7] "C" Vector__XXX
-   SG_ Air_Out_Of_Radiator_Temp : 55|16@0- (0.1,0) [-3276.8|3276.7] "" Vector__XXX
+   SG_ Air_Out_Of_Radiator_Temp : 55|16@0- (0.1,0) [-3276.8|3276.7] "C" Vector__XXX
 
 BO_ 1026 TelemNode_Cool_Loop_Pressures: 4 TelemNode
    SG_ Inlet_Water_Pressure : 7|16@0+ (0.01,0) [0|1] "PSI" Vector__XXX
@@ -75,10 +75,10 @@ BO_ 192 Dashboard_Torque_Request: 8 Dashboard
    SG_ Torque : 0|16@1+ (0.1,0) [0|6553.5] "Nm" Vector__XXX
    SG_ Speed : 16|16@1+ (1,0) [0|65535] "RPM" Vector__XXX
    SG_ Direction : 32|8@1+ (1,0) [0|1] "" Vector__XXX
-   SG_ Torque_Limit : 48|16@1+ (0.1,0) [0|6553.5] "Nm" Vector__XXX
    SG_ Inverter_Enable : 40|1@1+ (1,0) [0|1] "" Vector__XXX
    SG_ Discharge_Enable : 41|1@1+ (1,0) [0|1] "" Vector__XXX
    SG_ Speed_Mode_Enable : 42|1@1+ (1,0) [0|1] "" Vector__XXX
+   SG_ Torque_Limit : 48|16@1+ (0.1,0) [0|6553.5] "Nm" Vector__XXX
 
 BO_ 1280 Dashboard_Random_Shit: 6 Dashboard
    SG_ Front_Strain_Gauge : 7|16@0+ (1,0) [0|65535] "" Vector__XXX
@@ -105,40 +105,40 @@ BO_ 1281 Dashboard_Inputs: 3 Dashboard
    SG_ OVERTAKE : 16|1@0+ (1,0) [0|1] "" Vector__XXX
 
 BO_ 904 PEI_Current: 4 PEI
-   SG_ Current_ADC_Reading : 7|16@0+ (0.236158,0) [0|4095] "A" Vector__XXX
-   SG_ Current_Reference_ADC_Reading : 23|16@0+ (0.236158,0) [0|4095] "A" Vector__XXX
+   SG_ Current : 7|16@0- (0.01,0) [-327.68|327.67] "A" Vector__XXX
 
-BO_ 898 PEI_Raw_High_Level_BMS_Data: 4 PEI
-   SG_ HI_Temp_ADC_Reading : 7|16@0+ (1,0) [0|4095] "Raw_ADC" Vector__XXX
-   SG_ Pack_Voltage : 23|16@0+ (1,0) [0|4095] "Raw_ADC" Vector__XXX
+BO_ 898 PEI_High_Level_BMS_Data: 4 PEI
+   SG_ HI_Temp : 7|16@0+ (0.001,0) [0|65.535] "C" Vector__XXX
+   SG_ Pack_Voltage : 23|16@0+ (0.01,0) [0|655.35] "V" Vector__XXX
 
-BO_ 899 PEI_Raw_BMS_Voltages: 8 PEI
-   SG_ Subpack : 7|8@0+ (1,0) [0|4] "" Vector__XXX
-   SG_ Voltage_1_ADC_Reading : 23|16@0+ (1,0) [0|4095] "Raw_ADC" Vector__XXX
-   SG_ Group : 15|8@0+ (1,0) [0|7] "" Vector__XXX
-   SG_ Voltage_2_ADC_Reading : 39|16@0+ (1,0) [0|4095] "Raw_ADC" Vector__XXX
-   SG_ Voltage_3_ADC_Reading : 55|16@0+ (1,0) [0|4095] "Raw_ADC" Vector__XXX
-
-BO_ 900 PEI_Raw_BMS_Temps: 8 PEI
+BO_ 899 PEI_BMS_Voltages: 8 PEI
    SG_ Subpack : 7|8@0+ (1,0) [0|4] "" Vector__XXX
    SG_ Group : 15|8@0+ (1,0) [0|7] "" Vector__XXX
-   SG_ Temp_1_ADC_Reading : 23|16@0+ (1,0) [0|4095] "Raw_ADC" Vector__XXX
-   SG_ Temp_2_ADC_Reading : 39|16@0+ (1,0) [0|4095] "Raw_ADC" Vector__XXX
-   SG_ Temp_2_ADC_Reading51 : 55|16@0+ (1,0) [0|4095] "Raw_ADC" Vector__XXX
+   SG_ Voltage_1 : 23|16@0+ (0.01,0) [0|655.35] "V" Vector__XXX
+   SG_ Voltage_2 : 39|16@0+ (0.01,0) [0|655.35] "V" Vector__XXX
+   SG_ Voltage_3 : 55|16@0+ (0.01,0) [0|655.35] "V" Vector__XXX
+
+BO_ 900 PEI_BMS_Temps: 8 PEI
+   SG_ Subpack : 7|8@0+ (1,0) [0|4] "" Vector__XXX
+   SG_ Group : 15|8@0+ (1,0) [0|7] "" Vector__XXX
+   SG_ Temp_1 : 23|16@0+ (0.001,0) [0|65.535] "C" Vector__XXX
+   SG_ Temp_2 : 39|16@0+ (0.001,0) [0|65.535] "C" Vector__XXX
+   SG_ Temp_3 : 55|16@0+ (0.001,0) [0|65.535] "C" Vector__XXX
+
+BO_ 1028 TelemNode_Shock_Angles_Rear: 4 TelemNode
+   SG_ RL_Shock_Angle : 7|16@0+ (1,0) [0|4095] "Raw_ADC" Vector__XXX
+   SG_ RR_Shock_Angle : 23|16@0+ (1,0) [0|4095] "Raw_ADC" Vector__XXX
+
+BO_ 1282 Dashboard_Raw_Throttle: 4 Dashboard
+   SG_ Throttle_1 : 7|16@0+ (1,0) [0|65535] "" Vector__XXX
+   SG_ Throttle_2 : 23|16@0+ (1,0) [0|65535] "" Vector__XXX
 
 BA_DEF_ BO_ "GenMsgBackgroundColor" STRING ;
 BA_DEF_ BO_ "GenMsgForegroundColor" STRING ;
-BA_DEF_ BO_ "matchingcriteria" INT 0 0;
-BA_DEF_ BO_ "filterlabeling" INT 0 0;
-BA_DEF_ BO_ "GenMsgCycleTime" INT 0 100000;
+BA_DEF_ BO_ "matchingcriteria" INT 0 0 ;
+BA_DEF_ BO_ "filterlabeling" INT 0 0 ;
+BA_DEF_ BO_ "GenMsgCycleTime" INT 0 100000 ;
 BA_DEF_ "BusType" STRING ;
-
-BA_DEF_DEF_ "GenMsgBackgroundColor" "#ffffff";
-BA_DEF_DEF_ "GenMsgForegroundColor" "#000000";
-BA_DEF_DEF_ "matchingcriteria" 0;
-BA_DEF_DEF_ "filterlabeling" 1;
-BA_DEF_DEF_ "GenMsgCycleTime" 0;
-BA_DEF_DEF_ "BusType" "CAN";
 
 BA_ "GenMsgForegroundColor" BO_ 1894 "#000000";
 BA_ "GenMsgForegroundColor" BO_ 896 "#000000";
@@ -148,6 +148,16 @@ BA_ "GenMsgForegroundColor" BO_ 1026 "#000000";
 BA_ "GenMsgForegroundColor" BO_ 1281 "#000000";
 BA_ "GenMsgForegroundColor" BO_ 899 "#000000";
 BA_ "GenMsgForegroundColor" BO_ 900 "#000000";
+BA_ "GenMsgForegroundColor" BO_ 1028 "#000000";
+BA_ "GenMsgForegroundColor" BO_ 1282 "#000000";
 
-VAL_ 1894 State 0 "LV" 1 "PRECHARGE" 2 "HV ENABLED" 3 "DRIVE" 5 "STARTUP" 129 "DRV FRM LV" 130 "PRE TM OUT" 131 "BR NOT PRS" 132 "HV OFF DRV" 133 "SNSR DSCRP" 135 "SHTDWN OPN" 137 "HARD BSPD" 138 "MC FAULT" 134 "BSPD TRIPD" 136 "UNCALIBRTD";
+BA_DEF_DEF_ "GenMsgBackgroundColor" "#ffffff";
+BA_DEF_DEF_ "GenMsgForegroundColor" "#000000";
+BA_DEF_DEF_ "matchingcriteria" 0;
+BA_DEF_DEF_ "filterlabeling" 0;
+BA_DEF_DEF_ "GenMsgCycleTime" 0;
+BA_DEF_DEF_ "BusType" "CAN";
+
+VAL_ 1894 State 0 "LV" 1 "PRECHARGE" 2 "HV ENABLED" 3 "DRIVE" 5 "STARTUP" 129 "DRV FRM LV" 130 "PRE TM OUT" 131 "BR NOT PRS" 132 "HV OFF DRV" 133 "SNSR DSCRP" 134 "BSPD TRIPD" 135 "SHTDWN OPN" 136 "UNCALIBRTD" 137 "HARD BSPD" 138 "MC FAULT";
 VAL_ 896 BMS_Status 0 "NO ERROR" 1 "CHARGE MODE" 2 "BMS TEMP OVER" 4 "BMS TEMP UNDER" 8 "OVERVOLT" 16 "UNDERVOLT" 32 "OPEN WIRE" 64 "MISMATCH" 128 "SPI FAULT";
+VAL_ 899 Group 0 "A" 1 "B" 2 "C" 3 "D" 4 "E" 5 "F" 6 "G" 7 "H";
