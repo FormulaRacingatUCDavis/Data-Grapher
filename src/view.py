@@ -5,19 +5,79 @@ matplotlib.use("qt5agg")
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-
 from PyQt5.QtWidgets import (
-    QWidget, QPushButton, QMainWindow, QToolBar, QAction,
-    QToolButton, QMenu, QHBoxLayout, QVBoxLayout
+    QWidget, QPushButton, QMainWindow, QToolBar, QAction, QCheckBox,
+    QToolButton, QMenu, QHBoxLayout, QVBoxLayout, QFileDialog, QLabel, QGroupBox
 )
+from PyQt5.QtCore import Qt
 
 from controller import Controller
 
-class View(QMainWindow):
+class OptionsView(QMainWindow):
     def __init__(self):
         super().__init__()
+
+        self.setWindowTitle('Options')
+        self.setGeometry(100, 100, 600, 400)
+
+        layout = QVBoxLayout()
+
+        self.categories = {}
+
+        options = QGroupBox()
+        self.options_layout = QHBoxLayout()
+        self.options_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        options.setLayout(self.options_layout)
+
+        self.get_options()
+
+        load_bttn = QPushButton('Load Graphs')
+        load_bttn.setMinimumHeight(50)
+        load_bttn.clicked.connect(lambda: self.get_selected())
+
+        layout.addWidget(options)
+        layout.addWidget(load_bttn)
+
+        view = QWidget()
+        view.setLayout(layout)
+        self.setCentralWidget(view)
+
+    def addCheckbox(self, category, title):
+        if category not in self.categories:
+            vbox = QVBoxLayout()
+            vbox.setAlignment(Qt.AlignmentFlag.AlignTop)
+            self.options_layout.addLayout(vbox)
+
+            label = QLabel(category)
+            label.setAlignment(Qt.AlignmentFlag.AlignTop)
+            vbox.addWidget(label)
+            self.categories[category] = vbox
+
+        checkbox = QCheckBox(title)
+        checkbox.setChecked(False)
+        self.categories[category].addWidget(checkbox)
+
+    def get_options(self):
+        signals = [
+            "MC Inlet Temperature (C)",
+            "Motor Inlet Temperature (C)",
+            "MC Inlet Pressure (PSI)"
+        ]
+
+        for title in signals:
+            self.addCheckbox('INV', title)
+
+    def get_selected(self):
+        print('Loading selected choices...')
+        self.close()
+
+class MainView(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.windows = []
         self.setWindowTitle('FRUCD Data Grapher')
-        controller = Controller()
+        self.controller = Controller()
 
         self.toolbar = QToolBar()
         self.addToolBar(self.toolbar)
@@ -30,14 +90,14 @@ class View(QMainWindow):
         self.log_actions = {}
 
         self.add_dropdown('File', {
-            'Open...': self.open_log,
-            'Export CSV...': controller.export_csv,
+            'Open...': self.get_log,
+            'Export CSV...': self.controller.export_csv,
             '---': None,
             'Exit': self.close
         })
         self.add_dropdown('Plot', {
-            'Add...': controller.add_plot,
-            'Save As...': controller.export_plot,
+            'Add...': self.get_options,
+            'Save As...': self.controller.export_plot,
         })
 
         for name in [
@@ -73,12 +133,15 @@ class View(QMainWindow):
         button.setMenu(menu)
         self.toolbar.addWidget(button)
 
-    def open_log(self):
+    def get_log(self):
         """
-        Load data from CSV
+        Open File Explorer view to choose log file
         """
-        controller = Controller()
-        controller.load_model()
+        selector = QFileDialog(self)
+        selector.setNameFilter('*.csv')
+        if selector.exec():
+            file = selector.selectedFiles()[0]
+            self.controller.load_log(file)
 
         for name in [
             'Export CSV...',
@@ -88,7 +151,16 @@ class View(QMainWindow):
             if name in self.log_actions:
                 self.log_actions[name].setEnabled(True)
 
-    def get_graph(self, data):
+    def get_options(self):
+        """
+        Open checkbox view to select graphing options
+        """
+        options = OptionsView()
+        self.windows.append(options)
+        options.show()
+
+    def get_graph(self):
+        data = self.controller.model.data
         categories = [category for category in data]
 
         fig = plt.figure()
@@ -104,18 +176,16 @@ class View(QMainWindow):
             [message[0] for message in self.channelMessages[categories[0]]],
             marker='o', c='#02d0f5')
         
-        # Add buttons
         self.buttonLayout = QHBoxLayout()
         for category in categories:
-            # Must also wire up logic for the buttons
             button = QPushButton(category)
             button.clicked.connect(lambda _, category=category: self.switchTab(ln, ax, category))
 
             self.buttonLayout.addWidget(button)
 
         # Create the GUI stuff
-        self.tab = QWidget() # Tab's contents
-        self.layout = QVBoxLayout() # Tab's layout
+        self.tab = QWidget()
+        self.layout = QVBoxLayout()
         self.tab.setLayout(self.layout)
 
         self.canvas = FigureCanvas(fig)

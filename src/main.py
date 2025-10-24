@@ -1,14 +1,12 @@
 from PyQt5.QtWidgets import QApplication
 import sys
 
-from view import View
+from view import MainView
 
-# Create main window
-if len(sys.argv) == 1: # Load the file prompt
+if len(sys.argv) == 1:
     app = QApplication(sys.argv)
-    window = View()
+    window = MainView()
     window.show()
-
     sys.exit(app.exec())
 else:
     print("Usage: python3 graph_app.py [opt:graph_type]")
