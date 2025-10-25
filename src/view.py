@@ -14,8 +14,9 @@ from PyQt5.QtCore import Qt
 from controller import Controller
 
 class OptionsView(QMainWindow):
-    def __init__(self):
+    def __init__(self, controller):
         super().__init__()
+        self.controller = controller
 
         self.setWindowTitle('Options')
         self.setGeometry(100, 100, 600, 400)
@@ -42,42 +43,35 @@ class OptionsView(QMainWindow):
         view.setLayout(layout)
         self.setCentralWidget(view)
 
-    def addCheckbox(self, category, title):
-        if category not in self.categories:
-            vbox = QVBoxLayout()
-            vbox.setAlignment(Qt.AlignmentFlag.AlignTop)
-            self.options_layout.addLayout(vbox)
-
-            label = QLabel(category)
-            label.setAlignment(Qt.AlignmentFlag.AlignTop)
-            vbox.addWidget(label)
-            self.categories[category] = vbox
-
-        checkbox = QCheckBox(title)
-        checkbox.setChecked(False)
-        self.categories[category].addWidget(checkbox)
-
     def get_options(self):
-        signals = [
-            "MC Inlet Temperature (C)",
-            "Motor Inlet Temperature (C)",
-            "MC Inlet Pressure (PSI)"
-        ]
+        for src, signal in self.controller.model.graphable.items():
+            if signal not in self.categories:
+                vbox = QVBoxLayout()
+                vbox.setAlignment(Qt.AlignmentFlag.AlignTop)
+                self.options_layout.addLayout(vbox)
 
-        for title in signals:
-            self.addCheckbox('INV', title)
+                label = QLabel(signal)
+                label.setAlignment(Qt.AlignmentFlag.AlignTop)
+                vbox.addWidget(label)
+                self.categories[signal] = vbox
+
+            checkbox = QCheckBox(src)
+            checkbox.setChecked(False)
+            self.categories[signal].addWidget(checkbox)
 
     def get_selected(self):
         print('Loading selected choices...')
+        print(self.controller.model.graphable)
+
         self.close()
 
 class MainView(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.controller = Controller()
 
         self.windows = []
         self.setWindowTitle('FRUCD Data Grapher')
-        self.controller = Controller()
 
         self.toolbar = QToolBar()
         self.addToolBar(self.toolbar)
@@ -155,7 +149,7 @@ class MainView(QMainWindow):
         """
         Open checkbox view to select graphing options
         """
-        options = OptionsView()
+        options = OptionsView(self.controller)
         self.windows.append(options)
         options.show()
 

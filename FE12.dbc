@@ -39,7 +39,7 @@ BO_ 1894 Dashboard_Vehicle_State: 7 Dashboard
    SG_ Throttle2_Level : 23|8@0+ (1,0) [0|100] "%" Vector__XXX
    SG_ Brake_Level : 31|8@0+ (1,0) [0|100] "%" Vector__XXX
    SG_ State : 39|8@0+ (1,0) [0|255] "" Vector__XXX
-   SG_ VCU_ticks : 47|16@0+ (1,0) [0|65535] "ms" Vector__XXX
+   SG_ VCU_Ticks : 47|16@0+ (1,0) [0|65535] "ms" Vector__XXX
 
 BO_ 896 PEI_BMS_Status: 5 PEI
    SG_ BMS_Status : 7|8@0+ (1,0) [0|255] "" Vector__XXX
