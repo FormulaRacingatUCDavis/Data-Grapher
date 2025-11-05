@@ -6,6 +6,7 @@ from model import Model
 class Controller(object):
     def __init__(self):
         self.model = Model()
+        self.graph_windows = []  # Track created graph windows
 
     def load_log(self, file):
         """
@@ -67,3 +68,25 @@ class Controller(object):
 
     def export_plot(self):
         print('Export plot clicked')
+    
+    def create_graphs(self, selected_signals):
+        """
+        Create GraphView windows for selected signals, grouped by source
+        """
+        # Import here to avoid circular import issues
+        from view import GraphView
+        
+        # Group signals by source
+        signals_by_source = {}
+        for item in selected_signals:
+            source = item['source']
+            signal = item['signal']
+            if source not in signals_by_source:
+                signals_by_source[source] = []
+            signals_by_source[source].append(signal)
+        
+        # Create a GraphView window for each source
+        for source, signals in signals_by_source.items():
+            graph_window = GraphView(source, signals, self.model.data)
+            self.graph_windows.append(graph_window)
+            graph_window.show()

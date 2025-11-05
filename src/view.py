@@ -7,7 +7,8 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from PyQt5.QtWidgets import (
     QWidget, QPushButton, QMainWindow, QToolBar, QAction, QCheckBox,
-    QToolButton, QMenu, QHBoxLayout, QVBoxLayout, QFileDialog, QLabel, QGroupBox
+    QToolButton, QMenu, QHBoxLayout, QVBoxLayout, QFileDialog, QLabel, QGroupBox,
+    QScrollArea
 )
 from PyQt5.QtCore import Qt
 
@@ -21,14 +22,23 @@ class OptionsView(QMainWindow):
         self.setWindowTitle('Options')
         self.setGeometry(100, 100, 600, 400)
 
-        layout = QVBoxLayout()
+        # Create main layout
+        main_layout = QVBoxLayout()
 
-        self.categories = {}
+        # Create scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
 
-        options = QGroupBox()
-        self.options_layout = QHBoxLayout()
+        # Create scroll content widget
+        scroll_content = QWidget()
+        self.options_layout = QVBoxLayout()  # Changed from QHBoxLayout to QVBoxLayout
         self.options_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        options.setLayout(self.options_layout)
+        scroll_content.setLayout(self.options_layout)
+
+        # Set the scroll content
+        scroll_area.setWidget(scroll_content)
 
         self.get_options()
 
@@ -36,34 +46,122 @@ class OptionsView(QMainWindow):
         load_bttn.setMinimumHeight(50)
         load_bttn.clicked.connect(lambda: self.get_selected())
 
-        layout.addWidget(options)
-        layout.addWidget(load_bttn)
+        # Add widgets to main layout
+        main_layout.addWidget(scroll_area)
+        main_layout.addWidget(load_bttn)
 
         view = QWidget()
-        view.setLayout(layout)
+        view.setLayout(main_layout)
         self.setCentralWidget(view)
 
     def get_options(self):
-        for src, signal in self.controller.model.graphable.items():
-            if signal not in self.categories:
-                vbox = QVBoxLayout()
-                vbox.setAlignment(Qt.AlignmentFlag.AlignTop)
-                self.options_layout.addLayout(vbox)
-
-                label = QLabel(signal)
-                label.setAlignment(Qt.AlignmentFlag.AlignTop)
-                vbox.addWidget(label)
-                self.categories[signal] = vbox
-
-            checkbox = QCheckBox(src)
-            checkbox.setChecked(False)
-            self.categories[signal].addWidget(checkbox)
+        for src, signals in self.controller.model.graphable.items():
+            # Create a group box for each source
+            group_box = QGroupBox(src)
+            group_layout = QVBoxLayout()
+            group_box.setLayout(group_layout)
+            
+            # Add checkboxes for each signal in this source
+            for signal in signals:
+                checkbox = QCheckBox(signal)
+                checkbox.setChecked(False)
+                group_layout.addWidget(checkbox)
+            
+            # Add the group box to the main options layout
+            self.options_layout.addWidget(group_box)
 
     def get_selected(self):
         print('Loading selected choices...')
-        print(self.controller.model.graphable)
-
+        selected_signals = []
+        
+        # Collect all selected checkboxes
+        for i in range(self.options_layout.count()):
+            widget = self.options_layout.itemAt(i).widget()
+            if isinstance(widget, QGroupBox):
+                group_layout = widget.layout()
+                for j in range(group_layout.count()):
+                    checkbox = group_layout.itemAt(j).widget()
+                    if isinstance(checkbox, QCheckBox) and checkbox.isChecked():
+                        selected_signals.append({
+                            'source': widget.title(),
+                            'signal': checkbox.text()
+                        })
+        
+        print(f"Selected signals: {selected_signals}")
+        
+        # Create graphs for selected signals
+        if selected_signals:
+            self.controller.create_graphs(selected_signals)
+        
         self.close()
+
+class GraphView(QMainWindow):
+    def __init__(self, source, signals, data):
+        super().__init__()
+        self.source = source
+        self.signals = signals
+        self.data = data
+        
+        self.setWindowTitle(f'Graphs - {source}')
+        self.setGeometry(200, 200, 800, 600)
+        
+        # Create main layout
+        main_layout = QVBoxLayout()
+        
+        # Create matplotlib figure
+        self.fig, self.axes = plt.subplots(len(signals), 1, figsize=(10, 6))
+        if len(signals) == 1:
+            self.axes = [self.axes]  # Make it a list for consistency
+        
+        # Plot each signal
+        for i, signal in enumerate(signals):
+            self.plot_signal(i, signal)
+        
+        # Create canvas and toolbar
+        self.canvas = FigureCanvas(self.fig)
+        self.toolbar = NavigationToolbar(self.canvas, self)
+        
+        # Add to layout
+        main_layout.addWidget(self.toolbar)
+        main_layout.addWidget(self.canvas)
+        
+        # Set central widget
+        central_widget = QWidget()
+        central_widget.setLayout(main_layout)
+        self.setCentralWidget(central_widget)
+        
+        # Adjust layout
+        self.fig.tight_layout()
+    
+    def plot_signal(self, index, signal):
+        """
+        Plot a specific signal
+        """
+        ax = self.axes[index]
+        
+        # Extract data for this signal
+        timestamps = []
+        values = []
+        
+        for entry in self.data:
+            if entry['Source'] == self.source:
+                # Look for the signal in the data
+                signal_key = f"{self.source}_{signal}"
+                if signal_key in entry['Data']:
+                    timestamps.append(entry['Timestamp'])
+                    values.append(entry['Data'][signal_key])
+        
+        if timestamps and values:
+            ax.plot(timestamps, values, marker='o', markersize=2, linewidth=1)
+            ax.set_title(f'{signal}')
+            ax.set_xlabel('Timestamp (s)')
+            ax.set_ylabel(signal)
+            ax.grid(True, alpha=0.3)
+        else:
+            ax.text(0.5, 0.5, f'No data found for {signal}', 
+                   horizontalalignment='center', verticalalignment='center',
+                   transform=ax.transAxes)
+            ax.set_title(f'{signal} (No Data)')
 
 class MainView(QMainWindow):
     def __init__(self):
@@ -91,7 +189,7 @@ class MainView(QMainWindow):
         })
         self.add_dropdown('Plot', {
             'Add...': self.get_options,
-            'Save As...': self.controller.export_plot,
+            'Save As...': self.controller.export_csv,
         })
 
         for name in [
