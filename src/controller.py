@@ -1,44 +1,55 @@
 import csv
+import sqlite3
 import cantools
-
-from model import Model
+from cantools.database.can.signal import NamedSignalValue
+import numpy
 
 class Controller(object):
     def __init__(self):
-        self.model = Model()
-        self.graph_windows = []  # Track created graph windows
+        self.conn = sqlite3.connect('telem.db')
+        self.cur = self.conn.cursor()
+
+        self.tables = set()
+        self.numerical = {} # {src: {message: signal}}
 
     def load_log(self, file):
         """
-        Load log file data to update model
+        Process log file data into SQLite database with proper column types.
         """
-        frucd_dbc = cantools.database.load_file('20240129 Gen5 CAN DB.dbc')
-        mc_dbc = cantools.database.load_file('FE12.dbc')
+        self.cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        for (table,) in self.cur.fetchall():
+            self.cur.execute(f'DROP TABLE IF EXISTS "{table}"')
+        self.conn.commit()
+        self.tables.clear()
+        self.numerical.clear()
 
-        unrecognized = set()
+        failed = set()
         count = 0
+
+        frucd_db = cantools.database.load_file('20240129 Gen5 CAN DB.dbc')
+        mc_db = cantools.database.load_file('FE12.dbc')
 
         with open(file, 'r', newline='') as raw_can:
             reader = csv.reader(raw_can)
             for row in reader:
-                id = int(row[0], 16)
+                frame_id = int(row[0], 16)
 
                 message = None
-                for dbc in [frucd_dbc, mc_dbc]:
+                for db in (frucd_db, mc_db):
                     try:
-                        message = dbc.get_message_by_frame_id(id)
+                        message = db.get_message_by_frame_id(frame_id)
                         break
                     except KeyError:
                         continue
+
                 if message is None:
-                    print(f'>> Unrecognized ID {id} at timestamp: {row[-1]}')
-                    unrecognized.add(id)
+                    failed.add(frame_id)
                     count += 1
                     continue
 
                 data_bytes = []
                 for b in row[1:9]:
-                    if b.strip() == "":
+                    if b.strip() == '':
                         data_bytes.append(0)
                     else:
                         try:
@@ -46,47 +57,86 @@ class Controller(object):
                         except ValueError:
                             data_bytes.append(0)
 
-                raw_data = bytes(data_bytes)
-                timestamp = float(row[-1]) / 1000.0
-                decoded = message.decode(raw_data)
+                timestamp = int(row[-1])
+                decoded = message.decode(bytes(data_bytes))
+                src = message.senders[0]
 
-                self.model.get_data(
-                    timestamp,
-                    message.senders[0],
-                    id,
-                    message.name,
-                    decoded
-                )
-        
-        print('Completed parsing.')
+                if message.name not in self.tables:
+                    col_defs = [
+                        '"Timestamp" INTEGER',
+                        '"Source" TEXT'
+                    ]
 
+                    for sig in message.signals:
+                        test_value = decoded[sig.name]
+
+                        if isinstance(test_value, NamedSignalValue):
+                            col_defs.append(f'"{sig.name}" TEXT')
+                        elif isinstance(test_value, (float, int)):
+                            col_defs.append(f'"{sig.name}" REAL')
+                        else:
+                            col_defs.append(f'"{sig.name}" TEXT')
+
+                    create_sql = f"""
+                    CREATE TABLE IF NOT EXISTS "{message.name}" (
+                        {", ".join(col_defs)}
+                    )
+                    """
+                    self.cur.execute(create_sql)
+                    self.tables.add(message.name)
+
+                columns = ['"Timestamp"', '"Source"']
+                values = [timestamp, src]
+
+                for sig in message.signals:
+                    val = decoded[sig.name]
+
+                    if isinstance(val, NamedSignalValue):
+                        val = str(val)
+
+                    columns.append(f'"{sig.name}"')
+                    values.append(val)
+
+                    if isinstance(val, (float, int)):
+                        if src not in self.numerical:
+                            self.numerical[src] = {}
+                        if message.name not in self.numerical[src]:
+                            self.numerical[src][message.name] = set()
+                        self.numerical[src][message.name].add(sig.name)
+
+                placeholders = ', '.join(['?'] * len(values))
+                insert_sql = f"""
+                INSERT INTO "{message.name}" ({', '.join(columns)})
+                VALUES ({placeholders})
+                """
+                self.cur.execute(insert_sql, values)
+
+        self.conn.commit()
+
+    def get_datasets(self, selected):
+        """
+        Process selected CAN signals into numpy arrays
+        """
+        datasets = []
+
+        for src, messages in selected.items():
+            for msg, signals in messages.items():
+                for sig in signals:
+                    query = f"""
+                        SELECT Timestamp, "{sig}"
+                        FROM {msg}
+                        ORDER BY Timestamp ASC
+                    """
+
+                    self.cur.execute(query)
+                    rows = self.cur.fetchall()
+
+                    timestamps = numpy.array([r[0] for r in rows], dtype=float) / 1000
+                    values     = numpy.array([r[1] for r in rows], dtype=float)
+
+                    datasets.append((sig, timestamps, values))
+
+        return datasets
+                    
     def export_csv(self):
         print('Export CSV clicked')
-
-    def add_plot(self):
-        print('Add plot clicked')
-
-    def export_plot(self):
-        print('Export plot clicked')
-    
-    def create_graphs(self, selected_signals):
-        """
-        Create GraphView windows for selected signals, grouped by source
-        """
-        # Import here to avoid circular import issues
-        from view import GraphView
-        
-        # Group signals by source
-        signals_by_source = {}
-        for item in selected_signals:
-            source = item['source']
-            signal = item['signal']
-            if source not in signals_by_source:
-                signals_by_source[source] = []
-            signals_by_source[source].append(signal)
-        
-        # Create a GraphView window for each source
-        for source, signals in signals_by_source.items():
-            graph_window = GraphView(source, signals, self.model.data)
-            self.graph_windows.append(graph_window)
-            graph_window.show()
